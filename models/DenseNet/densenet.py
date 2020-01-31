@@ -1,3 +1,11 @@
+
+try:
+    # %tensorflow_version only exists in Colab.
+#     %tensorflow_version 2.x
+except Exception:
+    pass
+
+# !pip install tensorflow==2.0.0
 import tensorflow as tf
 tf.config.experimental_run_functions_eagerly(True)
 print(tf.__version__)
@@ -8,7 +16,6 @@ NUM_CLASSES = 10
 IMAGE_HEIGHT = 32
 IMAGE_WIDTH = 32
 CHANNELS = 3
-
 
 class BottleNeck(tf.keras.layers.Layer):
     def __init__(self, growth_rate, drop_rate):
@@ -35,7 +42,6 @@ class BottleNeck(tf.keras.layers.Layer):
         x = self.dropout(x, training=training)
         return x
 
-
 class DenseBlock(tf.keras.layers.Layer):
     def __init__(self, num_layers, growth_rate, drop_rate):
         super(DenseBlock, self).__init__()
@@ -45,8 +51,7 @@ class DenseBlock(tf.keras.layers.Layer):
         self.features_list = []
 
     def _make_layer(self, x, training):
-        y = BottleNeck(growth_rate=self.growth_rate, drop_rate=self.drop_rate)(
-            x, training=training)
+        y = BottleNeck(growth_rate=self.growth_rate, drop_rate=self.drop_rate)(x, training=training)
         self.features_list.append(y)
         y = tf.concat(self.features_list, axis=-1)
         return y
@@ -58,7 +63,6 @@ class DenseBlock(tf.keras.layers.Layer):
             x = self._make_layer(x, training=training)
         self.features_list.clear()
         return x
-
 
 class TransitionLayer(tf.keras.layers.Layer):
     def __init__(self, out_channels):
@@ -79,10 +83,8 @@ class TransitionLayer(tf.keras.layers.Layer):
         x = self.pool(x)
         return x
 
-
 class DenseNet(tf.keras.Model):
-    def __init__(self, num_init_features, growth_rate, block_layers,
-                 compression_rate, drop_rate):
+    def __init__(self, num_init_features, growth_rate, block_layers, compression_rate, drop_rate):
         super(DenseNet, self).__init__()
         self.conv = tf.keras.layers.Conv2D(filters=num_init_features,
                                            kernel_size=(7, 7),
@@ -93,27 +95,19 @@ class DenseNet(tf.keras.Model):
                                               strides=2,
                                               padding="same")
         self.num_channels = num_init_features
-        self.dense_block_1 = DenseBlock(num_layers=block_layers[0],
-                                        growth_rate=growth_rate,
-                                        drop_rate=drop_rate)
+        self.dense_block_1 = DenseBlock(num_layers=block_layers[0], growth_rate=growth_rate, drop_rate=drop_rate)
         self.num_channels += growth_rate * block_layers[0]
         self.num_channels = compression_rate * self.num_channels
         self.transition_1 = TransitionLayer(out_channels=int(self.num_channels))
-        self.dense_block_2 = DenseBlock(num_layers=block_layers[1],
-                                        growth_rate=growth_rate,
-                                        drop_rate=drop_rate)
+        self.dense_block_2 = DenseBlock(num_layers=block_layers[1], growth_rate=growth_rate, drop_rate=drop_rate)
         self.num_channels += growth_rate * block_layers[1]
         self.num_channels = compression_rate * self.num_channels
         self.transition_2 = TransitionLayer(out_channels=int(self.num_channels))
-        self.dense_block_3 = DenseBlock(num_layers=block_layers[2],
-                                        growth_rate=growth_rate,
-                                        drop_rate=drop_rate)
+        self.dense_block_3 = DenseBlock(num_layers=block_layers[2], growth_rate=growth_rate, drop_rate=drop_rate)
         self.num_channels += growth_rate * block_layers[2]
         self.num_channels = compression_rate * self.num_channels
         self.transition_3 = TransitionLayer(out_channels=int(self.num_channels))
-        self.dense_block_4 = DenseBlock(num_layers=block_layers[3],
-                                        growth_rate=growth_rate,
-                                        drop_rate=drop_rate)
+        self.dense_block_4 = DenseBlock(num_layers=block_layers[3], growth_rate=growth_rate, drop_rate=drop_rate)
 
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
         self.fc = tf.keras.layers.Dense(units=NUM_CLASSES,
@@ -137,18 +131,16 @@ class DenseNet(tf.keras.Model):
         x = self.fc(x)
 
         return x
-
-    def build_graph(self, input_shape):
+    
+    def build_graph(self, input_shape): 
         input_shape_nobatch = input_shape[1:]
         self.build(input_shape)
         inputs = tf.keras.Input(shape=input_shape_nobatch)
-
+        
         if not hasattr(self, 'call'):
-            raise AttributeError(
-                "User should define 'call' method in sub-class model!")
-
+            raise AttributeError("User should define 'call' method in sub-class model!")
+        
         _ = self.call(inputs)
-
 
 def densenet_121():
     return DenseNet(num_init_features=64, growth_rate=32,
@@ -173,7 +165,6 @@ def densenet_264():
                     block_layers=[6, 12, 64, 48], compression_rate=0.5,
                     drop_rate=0.5)
 
-
 def prepare_dataset():
     cifar10 = tf.keras.datasets.cifar10
     (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -195,7 +186,6 @@ def prepare_dataset():
 
     return x_train, x_test, y_train, y_test
 
-
 class myCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         if logs.get('accuracy'):
@@ -203,11 +193,9 @@ class myCallback(tf.keras.callbacks.Callback):
                 print("\nReached 99% accuracy so cancelling training!")
                 self.model.stop_training = True
 
-
 def print_model_summary(network):
     network.build_graph((1, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNELS))
     network.summary()
-
 
 
 if __name__ == '__main__':
